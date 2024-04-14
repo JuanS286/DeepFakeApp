@@ -1,0 +1,8 @@
+streamlit
+streamlit-extras
+Pillow
+tensorflow==2.15
+numpy
+python-dotenv
+pymongo
+boto3
