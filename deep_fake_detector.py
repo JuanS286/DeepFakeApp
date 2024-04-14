@@ -46,11 +46,11 @@ model1 = try_load_model(local_model1_path)
 model2 = try_load_model(local_model2_path)
 
 
-load_dotenv(find_dotenv())                      # load environment file to use password saved as an evironment var
-password = os.environ.get("MONGODB_PWD")        # assing password store in env var
+# load_dotenv(find_dotenv())                      # load environment file to use password saved as an evironment var
+# password = os.environ.get("MONGODB_PWD")        # assing password store in env var
 
 #connection string
-MONGODB_URI = f"mongodb+srv://gotudeepfake:{password}@cluster0.jpdo5rg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGODB_URI = f"mongodb+srv://gotudeepfake:lambton3014@cluster0.jpdo5rg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 
 client = MongoClient(MONGODB_URI)
 
