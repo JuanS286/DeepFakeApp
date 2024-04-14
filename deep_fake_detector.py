@@ -45,16 +45,32 @@ def try_load_model(path):
 model1 = try_load_model(local_model1_path)
 model2 = try_load_model(local_model2_path)
 
+
+load_dotenv(find_dotenv())                      # load environment file to use password saved as an evironment var
+password = os.environ.get("MONGODB_PWD")        # assing password store in env var
+
+#connection string
+MONGODB_URI = f"mongodb+srv://gotudeepfake:{password}@cluster0.jpdo5rg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+
+client = MongoClient(MONGODB_URI)
+
+db = client.deepfake                            # DataBase
+collect = db.deepfake_report                     # Collection to stores counter for report
+
 # Logo path
-logo_path = "Got U logo.jpg"
+logo_path = "logo-gotudeepfake.png"
+fake_icon = "fake.png"
+real_icon = "real.png"
 
-# Using column layout to center the logo
-col1, col2, col3 = st.columns([1,1,1])
-with col2:
-    st.image(logo_path, use_column_width=True)
+st.set_page_config(layout="wide", page_title="Got U DeepFake")
+
+# LAYING OUT THE TOP SECTION OF THE APP
+row1_1, row1_2 = st.columns((2, 3))
+
+cola1, cola2, cola3, cola4, cola5, cola6, cola7, cola8, cola9 = st.columns([1,1,1,1,1,1,1,1,1])
 
 
-
+# This is a tempral code to test the web app
 def classify_image(image, model):
     img = image.resize((224, 224))  # Resize image to model's expected input size
     img_array = img_to_array(img)
@@ -63,56 +79,157 @@ def classify_image(image, model):
 
     predictions = model.predict(img_array) 
     return predictions
+
+    '''
+    # Load directly the model
+    model = load_model('./deepfake-detection-project/deploy/model_epoch_10_val_accuracy_1.0000.h5')
     
-"""Function to classify the image as real or fake based on our model."""
+    # Get the model's prediction
+    prediction = model.predict(image)
+    predicted_class = 'Real' if prediction[0][0] > 0.5 else 'Fake'
+    print(f'Prediction: {prediction[0][0]}')
+    print(f'Predicted class: {predicted_class}')
+'''
 
-    # This is a temporary example of image tuning for the model:
+def rezize_image(img):
 
+    """Function to resize the image dimension."""
+    #img = image.resize((224, 224))  # Resize image to model's expected input size
 
-# Streamlit app layout
-st.title('Welcome to Got U: Your Go-To Deep Fake Image Detector 🕵🏻')
-st.divider()
+   
+    # Load the image and convert it to a numpy array
+    target_size=(224, 224)
+    image = img.resize(target_size)  # Resize the image to the specified target size
 
-st.write("""
-Navigating the digital world's real vs. fake landscape just got easier! With "Got U," you're one upload away from uncovering the truth behind any face image. 
-**Why "Got U"?**
-- **Spot the Real Deal**: Instantly find out if that image is genuine or a clever fake.
-- **Simplicity is Key**: Our straightforward design means you get results fast, no tech wizardry required.
-- **Join the Truth Squad**: Help us fight the good fight against digital deception by identifying deepfakes.
-""")
+    img_array = np.array(image)  # Convert the resized image to a NumPy array
+    img_array = np.expand_dims(img_array, axis=0)  # Add a batch dimension
 
-st.write("""
-**Your Voice Matters**
-Got feedback? We're all ears! Your insights help us make "Got U" even better, ensuring we stay on the frontline of deepfake detection.
-""")
+    img_array = img_array / 255.0  # Rescale the image
 
-st.write("😁 **Thanks for teaming up with Got U. Let's keep it real together!**")
+    return img_array
 
-st.divider()
+def classify(image):
 
-st.subheader("Now, let's get into action...")
-st.text("Please upload or drag and drop your image")
-
-uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-if uploaded_image is not None:
-    image = Image.open(uploaded_image)
-    st.image(image, caption='Uploaded Image', use_column_width=True)
-    st.write("Classifying...")
-
+    #st.write("Classifying...")
+    
     prediction1 = classify_image(image, model1)
     prediction2 = classify_image(image, model2)
     
     prediction = (prediction1 + prediction2)/2
+    
+    # Here the model will give the probability to make the prediction
+    # 0.5 is an example, threshold can be adjusted
+    predicted_class = 'Real' if prediction > 0.5 else 'Fake'
+    print(f'Prediction Average: {prediction}') 
+    print(f'Predicted class Average: {predicted_class}')
 
-
-    if prediction < 0.5:     
-        st.error("The image is likely Fake ☹️👎🏻")
+    if predicted_class == "Fake":     
+        #st.error("The image is likely Fake ☹️👎🏻")
         rain(
         emoji="💀",
         font_size=40,
         falling_speed=3,
         animation_length=[5, 'seconds'], 
     )
+        st.image(fake_icon,width=70)
+        compute_report(0,1)
+
     else:
-        st.success("The image is likely Real 😁👍🏻")
+        #st.success("The image is likely Real 😁👍🏻")
         st.balloons()
+        st.image(real_icon,width=70)
+        compute_report(1,0)
+
+    
+def compute_report(real, fake):   
+
+    report  = collect.find_one()
+    print(report)
+    qry = { "_id": report["_id"] }
+
+    submitted = int(report["number_submitted"]) + 1
+    real_image_count = int(report["real_images_caught"]) + real
+    fake_image_count = int(report["fake_images_caught"]) + fake
+
+    with row1_2:
+         col1, col2, col3 = st.columns([1,1,1])
+
+    with col1:
+        st.write("Number of time submitted")
+        st.markdown(f"{submitted}")
+
+    with col2:
+        st.write("Real images caught")
+        st.write(f"\t{real_image_count}")
+
+    with col3:
+        st.write("fake images caught")
+        st.write(f"{fake_image_count}")
+
+
+    deepfake_report= { "$set": {
+        "number_submitted":submitted ,
+        "real_images_caught":real_image_count,
+        "fake_images_caught":fake_image_count
+    }}
+
+    collect.update_one(qry, deepfake_report, upsert=True)
+
+
+# def classify_image(image):
+#     """Function to classify the image as real or fake based on our model."""
+    
+#     # This is a temporary example of image tuning for the model:
+#     img = image.resize((224, 224))  # Resize image to model's expected input size
+#     img_array = tf.keras.preprocessing.image.img_to_array(img)
+#     img_array = tf.expand_dims(img_array, 0)  # Create a batch
+
+#     predictions = model.predict(img_array)
+#     return predictions
+
+
+with row1_1:
+    colx1_1, colx1_2, colx1_3 = st.columns([1,1,1])
+    with colx1_2:
+        st.image(logo_path)
+    
+    # Streamlit app layout
+    st.title('Welcome to Got U: Your Go-To Deep Fake Image Detector 🕵🏻')
+    st.divider()
+
+    st.write("""
+    Navigating the digital world's real vs. fake landscape just got easier! With "Got U," you're one upload away from uncovering the truth behind any face image. 
+
+    **Why "Got U"?**
+
+    - **Spot the Real Deal**: Instantly find out if that image is genuine or a clever fake.
+    - **Simplicity is Key**: Our straightforward design means you get results fast, no tech wizardry required.
+    - **Join the Truth Squad**: Help us fight the good fight against digital deception by identifying deepfakes.
+    """)
+
+    st.write("""
+    **Your Voice Matters**
+
+    Got feedback? We're all ears! Your insights help us make "Got U" even better, ensuring we stay on the frontline of deepfake detection.
+    """)
+
+    st.write("😁 **Thanks for teaming up with Got U. Let's keep it real together!**")
+
+with row1_2:
+    st.subheader("Now, let's get into action...")
+    st.text("Please upload or drag and drop your image")
+
+    uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+    if uploaded_image is not None:
+        image = Image.open(uploaded_image)
+        
+        image_resize = rezize_image(image)
+        col1, col2, col3 = st.columns([1,1,1])
+        col1.empty()
+        with col2:
+            st.image(image_resize, caption='Uploaded Image')
+            if st.button('Validate', type="primary"):
+                classify(image)
+        col3.empty()
+
+    
