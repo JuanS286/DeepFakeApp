@@ -19,6 +19,8 @@ import imutils
 import cv2
 from face_detection_3 import detect_face
 
+st.set_page_config(layout="wide", page_title="Got U DeepFake")
+
 # Set up directory in a system-independent way
 model_dir = tempfile.gettempdir()
 
@@ -69,7 +71,6 @@ logo_path = "logo-gotudeepfake.png"
 fake_icon = "fake.png"
 real_icon = "real.png"
 
-st.set_page_config(layout="wide", page_title="Got U DeepFake")
 
 # LAYING OUT THE TOP SECTION OF THE APP
 row1_1, row1_2 = st.columns((2, 3))
