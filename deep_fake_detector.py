@@ -15,7 +15,9 @@ import tensorflow as tf
 import random
 from keras.preprocessing.image import img_to_array
 import tempfile
-
+import imutils
+import cv2
+from face_detection_3 import detect_face
 
 # Set up directory in a system-independent way
 model_dir = tempfile.gettempdir()
@@ -42,8 +44,13 @@ def try_load_model(path):
         print(f"Failed to load model: {e}")
         return None
 
-model1 = try_load_model(local_model1_path)
-model2 = try_load_model(local_model2_path)
+@st.cache(allow_output_mutation=True)
+def load_model_from_path(model_path):
+    model = load_model(model_path)
+    return model
+
+model1 = load_model_from_path(local_model1_path)
+model2 = load_model_from_path(local_model2_path)
 
 
 # load_dotenv(find_dotenv())                      # load environment file to use password saved as an evironment var
@@ -221,15 +228,21 @@ with row1_2:
 
     uploaded_image = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
     if uploaded_image is not None:
-        image = Image.open(uploaded_image)
         
-        image_resize = rezize_image(image)
-        col1, col2, col3 = st.columns([1,1,1])
-        col1.empty()
-        with col2:
-            st.image(image_resize, caption='Uploaded Image')
-            if st.button('Validate', type="primary"):
-                classify(image)
-        col3.empty()
+        #Call to method that use opencv model to face recognition
+        if(detect_face(uploaded_image)==0):
+            st.write(f'This is not a face image!!!!')
+
+        else: # it is a face
+            image = Image.open(uploaded_image)
+            
+            image_resize = rezize_image(image)
+            col1, col2, col3 = st.columns([1,1,1])
+            col1.empty()
+            with col2:
+                st.image(image_resize, caption='Uploaded Image')
+                if st.button('Validate', type="primary"):
+                    classify(image)
+            col3.empty()
 
     

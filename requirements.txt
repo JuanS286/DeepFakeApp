@@ -6,3 +6,5 @@ numpy
 python-dotenv
 pymongo
 boto3
+opencv-python==4.5.2.54
+imutils==0.5.4
